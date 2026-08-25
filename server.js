@@ -13,16 +13,12 @@ const io = new Server(server, {
   cors: { origin: '*' }, // في الإنتاج: حدد نطاق موقعك بدل '*'
 });
 
+
 app.use(cors());
 app.use(express.json());
 
-
 app.get('/', (req, res) => {
-  res.json({
-    ok: true,
-    message: 'قهوة خليل API تعمل بنجاح ☕',
-    status: 'online'
-  });
+  res.status(200).send('Bzou Coffee API is running ☕');
 });
 
 app.get('/api/health', (req, res) => res.json({ ok: true, name: 'قهوة خليل API' }));
