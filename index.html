@@ -1,0 +1,676 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<title>قهوة خليل — تطبيق الطلب ولوحة التحكم</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=El+Messiri:wght@500;600;700&family=Tajawal:wght@400;500;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#150E0A;
+    --surface:#221712;
+    --surface-2:#2B1D16;
+    --border:#3B2A20;
+    --text:#F4EBE0;
+    --text-muted:#A6927F;
+    --copper:#C98A46;
+    --copper-light:#E7B67C;
+    --matcha:#84A85D;
+    --matcha-dim:#243424;
+    --alert:#D9634A;
+    --alert-dim:#3A2119;
+    --cream:#EFE1C9;
+    --radius:16px;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{
+    background:transparent; font-family:'Tajawal', sans-serif; color:var(--text);
+    min-height:100vh; display:flex; flex-direction:column; align-items:center; gap:22px; padding:26px 12px 40px;
+  }
+  .brand-font{ font-family:'El Messiri', serif; }
+  .mono{ font-family:'Space Mono', monospace; direction:ltr; unicode-bidi:isolate; }
+
+  /* ---- top switcher ---- */
+  .switcher{
+    display:flex; gap:6px; background:var(--surface); border:1px solid var(--border);
+    border-radius:30px; padding:5px;
+  }
+  .switcher button{
+    border:none; background:transparent; color:var(--text-muted); font-family:'Tajawal';
+    font-size:13px; font-weight:700; padding:10px 20px; border-radius:24px; cursor:pointer; transition:.2s;
+  }
+  .switcher button.active{ background:var(--copper); color:#1C1108; }
+
+  .mode-wrap{ display:none; }
+  .mode-wrap.active{ display:block; }
+
+  /* =========================================================
+     CUSTOMER — phone frame
+  ========================================================= */
+  .phone{
+    width:380px; max-width:92vw; background:#0A0705; border-radius:42px; padding:13px;
+    box-shadow:0 30px 60px -20px rgba(0,0,0,0.6), inset 0 0 0 1px #000;
+  }
+  .screen{
+    background:var(--bg); border-radius:30px; overflow:hidden; height:740px;
+    display:flex; flex-direction:column; position:relative;
+  }
+  .notch{
+    position:absolute; top:13px; left:50%; transform:translateX(-50%);
+    width:105px; height:20px; background:#0A0705; border-radius:12px; z-index:6;
+  }
+  .c-header{
+    padding:22px 18px 14px; display:flex; justify-content:space-between; align-items:center;
+    border-bottom:1px solid var(--border);
+  }
+  .c-header .shop{ font-size:19px; font-weight:700; }
+  .c-header .table-badge{
+    background:var(--surface-2); border:1px solid var(--border); color:var(--copper-light);
+    font-size:11.5px; padding:6px 12px; border-radius:20px; font-weight:700;
+  }
+  .c-content{ flex:1; overflow-y:auto; padding:14px 16px 16px; scrollbar-width:none; }
+  .c-content::-webkit-scrollbar{ display:none; }
+  .c-panel{ display:none; animation:fadeIn .3s ease; }
+  .c-panel.active{ display:block; }
+  @keyframes fadeIn{ from{opacity:0; transform:translateY(6px);} to{opacity:1; transform:translateY(0);} }
+
+  .cat-chips{ display:flex; gap:8px; overflow-x:auto; padding-bottom:4px; margin-bottom:14px; }
+  .cat-chip{
+    white-space:nowrap; padding:8px 15px; border-radius:20px; border:1px solid var(--border);
+    background:var(--surface); color:var(--text-muted); font-family:'Tajawal'; font-size:12px; cursor:pointer;
+  }
+  .cat-chip.active{ background:var(--copper); border-color:var(--copper); color:#1C1108; font-weight:700; }
+
+  .menu-item{
+    display:flex; gap:12px; background:var(--surface); border:1px solid var(--border);
+    border-radius:var(--radius); padding:12px; margin-bottom:10px; align-items:center;
+  }
+  .menu-item .thumb{
+    width:52px; height:52px; border-radius:12px; background:var(--surface-2);
+    display:flex; align-items:center; justify-content:center; font-size:22px; flex-shrink:0;
+  }
+  .menu-item .info{ flex:1; }
+  .menu-item .name{ font-size:14px; font-weight:700; }
+  .menu-item .desc{ font-size:11px; color:var(--text-muted); margin-top:2px; }
+  .menu-item .price{ font-size:12.5px; color:var(--copper-light); margin-top:4px; }
+  .stepper{ display:flex; align-items:center; gap:8px; }
+  .stepper button{
+    width:26px; height:26px; border-radius:8px; border:1px solid var(--border); background:var(--surface-2);
+    color:var(--text); font-size:14px; cursor:pointer;
+  }
+  .stepper span{ font-size:13px; min-width:14px; text-align:center; }
+
+  .float-cart{
+    position:absolute; bottom:78px; left:16px; right:16px;
+    background:var(--copper); color:#1C1108; border-radius:16px; padding:13px 16px;
+    display:none; align-items:center; justify-content:space-between; font-weight:700; font-size:13px;
+    cursor:pointer; box-shadow:0 8px 20px rgba(0,0,0,0.4); z-index:5;
+  }
+  .float-cart.show{ display:flex; }
+
+  .cart-line{
+    display:flex; justify-content:space-between; align-items:center; padding:12px 0; border-bottom:1px solid var(--border);
+  }
+  .cart-line:last-child{ border-bottom:none; }
+  .cart-line .nm{ font-size:13.5px; }
+  .cart-line .pr{ font-size:12.5px; color:var(--text-muted); margin-top:2px; }
+
+  .summary-row{ display:flex; justify-content:space-between; padding:8px 0; font-size:13px; color:var(--text-muted); }
+  .summary-row.total{ color:var(--text); font-weight:700; font-size:15px; border-top:1px solid var(--border); margin-top:6px; padding-top:12px; }
+
+  .pay-toggle{ display:flex; background:var(--surface-2); border-radius:14px; padding:4px; margin:16px 0; }
+  .pay-toggle button{
+    flex:1; border:none; background:transparent; color:var(--text-muted); padding:10px; border-radius:11px;
+    font-family:'Tajawal'; font-size:12.5px; font-weight:700; cursor:pointer;
+  }
+  .pay-toggle button.active{ background:var(--copper); color:#1C1108; }
+
+  .confirm-btn{
+    width:100%; background:var(--matcha); color:#0F1A0C; border:none; padding:15px; border-radius:14px;
+    font-family:'Tajawal'; font-size:14px; font-weight:700; cursor:pointer; margin-top:6px;
+  }
+
+  /* order status cup */
+  .cup-wrap{ display:flex; flex-direction:column; align-items:center; margin:16px 0 6px; }
+  .stage-label{ font-size:15px; font-weight:700; margin-top:14px; }
+  .stage-sub{ font-size:12px; color:var(--text-muted); margin-top:4px; }
+  .stage-track{ display:flex; gap:6px; margin-top:16px; width:100%; }
+  .stage-dot{ flex:1; height:5px; border-radius:3px; background:var(--surface-2); }
+  .stage-dot.done{ background:var(--copper); }
+
+  .order-summary-card{
+    background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:14px; margin-top:18px;
+  }
+  .demo-btn{
+    width:100%; margin-top:14px; background:transparent; border:1px dashed var(--border); color:var(--text-muted);
+    padding:10px; border-radius:12px; font-family:'Tajawal'; font-size:11.5px; cursor:pointer;
+  }
+
+  .c-nav{
+    display:flex; border-top:1px solid var(--border); padding:10px 6px 16px; background:var(--bg);
+  }
+  .c-nav button{
+    flex:1; display:flex; flex-direction:column; align-items:center; gap:4px; background:none; border:none;
+    color:var(--text-muted); font-family:'Tajawal'; font-size:10px; cursor:pointer; position:relative;
+  }
+  .c-nav button.active{ color:var(--copper-light); }
+  .c-nav .ic{ font-size:17px; }
+  .cart-badge{
+    position:absolute; top:-3px; left:calc(50% + 6px); background:var(--alert); color:#fff;
+    font-size:9px; width:15px; height:15px; border-radius:50%; display:flex; align-items:center; justify-content:center;
+    font-weight:700;
+  }
+
+  /* =========================================================
+     OWNER — tablet dashboard
+  ========================================================= */
+  .tablet{
+    width:800px; max-width:94vw; background:#0A0705; border-radius:26px; padding:12px;
+    box-shadow:0 30px 60px -20px rgba(0,0,0,0.6), inset 0 0 0 1px #000;
+  }
+  .o-screen{
+    background:var(--bg); border-radius:16px; overflow:hidden; height:600px; display:flex;
+  }
+  .sidebar{
+    width:170px; background:var(--surface); border-left:1px solid var(--border);
+    padding:20px 12px; display:flex; flex-direction:column; gap:4px; flex-shrink:0;
+  }
+  .sb-brand{ font-size:16px; font-weight:700; padding:0 8px 18px; }
+  .sb-brand span{ display:block; font-size:10.5px; color:var(--text-muted); font-weight:400; margin-top:2px; }
+  .sb-item{
+    display:flex; align-items:center; gap:10px; padding:11px 10px; border-radius:11px; cursor:pointer;
+    color:var(--text-muted); font-size:12.5px; font-weight:700; border:none; background:none; text-align:right; font-family:'Tajawal';
+  }
+  .sb-item.active{ background:var(--copper); color:#1C1108; }
+  .sb-item .ic{ font-size:15px; }
+
+  .o-content{ flex:1; overflow-y:auto; padding:22px 26px; scrollbar-width:none; }
+  .o-content::-webkit-scrollbar{ display:none; }
+  .o-panel{ display:none; animation:fadeIn .3s ease; }
+  .o-panel.active{ display:block; }
+
+  .o-title{ font-size:18px; font-weight:700; margin-bottom:4px; }
+  .o-sub{ font-size:12px; color:var(--text-muted); margin-bottom:20px; }
+
+  .stat-grid{ display:flex; gap:12px; margin-bottom:22px; }
+  .stat-box{ flex:1; background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:14px; }
+  .stat-box .lbl{ font-size:11px; color:var(--text-muted); }
+  .stat-box .val{ font-size:19px; font-weight:700; margin-top:5px; }
+  .stat-box .val.copper{ color:var(--copper-light); }
+
+  .two-col{ display:flex; gap:18px; }
+  .col{ flex:1; }
+
+  .hour-chart{
+    background:var(--surface); border:1px solid var(--border); border-radius:var(--radius);
+    padding:16px; display:flex; align-items:flex-end; justify-content:space-between; height:130px; gap:5px;
+  }
+  .hbar{ flex:1; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; height:100%; gap:5px; }
+  .hbar .bar{ width:100%; background:var(--copper); border-radius:3px 3px 0 0; }
+  .hbar .h{ font-size:9px; color:var(--text-muted); }
+
+  .top-item-row{
+    display:flex; justify-content:space-between; align-items:center; padding:10px 0; border-bottom:1px solid var(--border); font-size:12.5px;
+  }
+  .top-item-row:last-child{ border-bottom:none; }
+  .top-item-row .rank{ color:var(--copper-light); font-weight:700; margin-left:8px; }
+
+  /* kanban */
+  .kanban{ display:flex; gap:14px; }
+  .kcol{ flex:1; min-width:0; }
+  .kcol h4{ font-size:12.5px; color:var(--text-muted); margin-bottom:10px; display:flex; justify-content:space-between; }
+  .kcard{
+    background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:12px; margin-bottom:10px;
+  }
+  .kcard .top{ display:flex; justify-content:space-between; font-size:12.5px; font-weight:700; margin-bottom:6px; }
+  .kcard .items{ font-size:11px; color:var(--text-muted); line-height:1.6; margin-bottom:8px; }
+  .kcard .time{ font-size:10px; color:var(--text-muted); }
+  .kcard button{
+    width:100%; margin-top:8px; background:var(--copper); color:#1C1108; border:none;
+    padding:8px; border-radius:9px; font-family:'Tajawal'; font-size:11px; font-weight:700; cursor:pointer;
+  }
+  .kcard.ready button{ background:var(--matcha); color:#0F1A0C; }
+
+  .inv-row{
+    display:flex; align-items:center; gap:12px; padding:12px 0; border-bottom:1px solid var(--border);
+  }
+  .inv-row:last-child{ border-bottom:none; }
+  .inv-icon{ font-size:18px; }
+  .inv-wrap{ flex:1; }
+  .inv-top{ display:flex; justify-content:space-between; font-size:12.5px; margin-bottom:5px; }
+  .inv-track{ height:6px; background:var(--surface-2); border-radius:4px; overflow:hidden; }
+  .inv-fill{ height:100%; border-radius:4px; }
+  .inv-alert{ font-size:10.5px; color:var(--alert); margin-top:4px; }
+
+  .rep-cat{ display:flex; align-items:center; gap:10px; padding:11px 0; border-bottom:1px solid var(--border); }
+  .rep-cat:last-child{ border-bottom:none; }
+  .rep-wrap{ flex:1; }
+  .rep-top{ display:flex; justify-content:space-between; font-size:12.5px; }
+  .rep-track{ height:5px; background:var(--surface-2); border-radius:3px; margin-top:6px; }
+  .rep-fill{ height:100%; border-radius:3px; background:var(--copper); }
+
+  .export-row{
+    margin-top:18px; background:var(--surface-2); border-radius:var(--radius); padding:15px 18px;
+    display:flex; justify-content:space-between; align-items:center;
+  }
+  .export-row button{
+    background:var(--copper); color:#1C1108; border:none; border-radius:10px; padding:9px 16px;
+    font-family:'Tajawal'; font-size:12px; font-weight:700; cursor:pointer;
+  }
+
+  .toast{
+    position:fixed; bottom:24px; left:50%; transform:translateX(-50%) translateY(20px);
+    background:var(--copper); color:#1C1108; padding:11px 20px; border-radius:30px;
+    font-size:12.5px; font-weight:700; opacity:0; transition:.3s; white-space:nowrap; z-index:50;
+  }
+  .toast.show{ opacity:1; transform:translateX(-50%) translateY(0); }
+
+  @media (prefers-reduced-motion: reduce){ *{ animation:none !important; transition:none !important; } }
+</style>
+</head>
+<body>
+
+<div class="switcher">
+  <button class="active" id="sw-customer" onclick="setMode('customer')">🧑 واجهة الزبون</button>
+  <button id="sw-owner" onclick="setMode('owner')">☕ واجهة صاحب المقهى</button>
+</div>
+
+<!-- =========================================================
+     CUSTOMER MODE
+========================================================= -->
+<div class="mode-wrap active" id="mode-customer">
+  <div class="phone">
+    <div class="screen">
+      <div class="notch"></div>
+      <div class="c-header">
+        <div class="shop brand-font">مقهى خليل</div>
+        <div class="table-badge">طاولة 07</div>
+      </div>
+
+      <div class="c-content">
+        <!-- MENU -->
+        <div class="c-panel active" id="c-panel-menu">
+          <div class="cat-chips">
+            <button class="cat-chip active" onclick="filterCat(this,'all')">الكل</button>
+            <button class="cat-chip" onclick="filterCat(this,'hot')">قهوة ساخنة</button>
+            <button class="cat-chip" onclick="filterCat(this,'cold')">قهوة باردة</button>
+            <button class="cat-chip" onclick="filterCat(this,'sweet')">حلويات</button>
+          </div>
+          <div id="menuList"></div>
+        </div>
+
+        <!-- CART -->
+        <div class="c-panel" id="c-panel-cart">
+          <div id="cartLines"></div>
+          <div class="summary-row"><span>المجموع الفرعي</span><span class="mono" id="subtotalVal">0.00 د.م</span></div>
+          <div class="summary-row"><span>رسوم الخدمة</span><span class="mono">0.00 د.م</span></div>
+          <div class="summary-row total"><span>الإجمالي</span><span class="mono" id="totalVal">0.00 د.م</span></div>
+
+          <div class="pay-toggle">
+            <button class="active" id="payCash" onclick="setPay('cash')">نقداً عند الاستلام</button>
+            <button id="payCard" onclick="setPay('card')">بطاقة</button>
+          </div>
+          <button class="confirm-btn" onclick="confirmOrder()">تأكيد الطلب</button>
+        </div>
+
+        <!-- MY ORDER -->
+        <div class="c-panel" id="c-panel-order">
+          <div class="cup-wrap">
+            <svg width="90" height="100" viewBox="0 0 90 100">
+              <defs>
+                <clipPath id="cupClip"><path d="M14 20 L20 88 Q45 96 70 88 L76 20 Z"/></clipPath>
+              </defs>
+              <path d="M14 20 L20 88 Q45 96 70 88 L76 20 Z" fill="none" stroke="var(--border)" stroke-width="3"/>
+              <rect id="liquid" x="10" y="94" width="70" height="0" fill="var(--copper)" clip-path="url(#cupClip)" style="transition:y .8s ease, height .8s ease"/>
+              <path d="M76 26 Q90 28 88 42 Q86 54 72 52" fill="none" stroke="var(--border)" stroke-width="3"/>
+              <line x1="10" y1="20" x2="80" y2="20" stroke="var(--border)" stroke-width="3" stroke-linecap="round"/>
+            </svg>
+            <div class="stage-label" id="stageLabel">تم استلام طلبك</div>
+            <div class="stage-sub" id="stageSub">سيبدأ الباريستا التحضير قريباً</div>
+            <div class="stage-track">
+              <div class="stage-dot done" id="dot1"></div>
+              <div class="stage-dot" id="dot2"></div>
+              <div class="stage-dot" id="dot3"></div>
+            </div>
+          </div>
+
+          <div class="order-summary-card">
+            <div style="font-size:12.5px; color:var(--text-muted); margin-bottom:8px">طلبك — طاولة 07</div>
+            <div id="orderSummaryLines" style="font-size:12.5px; line-height:1.9"></div>
+          </div>
+          <button class="demo-btn" onclick="advanceStage()">▶ محاكاة تقدم الطلب (للعرض فقط)</button>
+        </div>
+      </div>
+
+      <div class="float-cart" id="floatCart" onclick="showCPanel('cart')">
+        <span id="floatCartText">0 عناصر</span>
+        <span id="floatCartTotal" class="mono">0.00 د.م</span>
+      </div>
+
+      <div class="c-nav">
+        <button class="active" id="cnav-menu" onclick="showCPanel('menu')"><span class="ic">☕</span>القائمة</button>
+        <button id="cnav-cart" onclick="showCPanel('cart')"><span class="ic">🛒</span>السلة<span class="cart-badge" id="cartBadge" style="display:none">0</span></button>
+        <button id="cnav-order" onclick="showCPanel('order')"><span class="ic">⏱️</span>طلبي</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- =========================================================
+     OWNER MODE
+========================================================= -->
+<div class="mode-wrap" id="mode-owner">
+  <div class="tablet">
+    <div class="o-screen">
+      <div class="sidebar">
+        <div class="sb-brand brand-font">مقهى خليل<span>لوحة التحكم</span></div>
+        <button class="sb-item active" id="onav-overview" onclick="showOPanel('overview')"><span class="ic">📊</span>نظرة عامة</button>
+        <button class="sb-item" id="onav-orders" onclick="showOPanel('orders')"><span class="ic">🔔</span>الطلبات الحية</button>
+        <button class="sb-item" id="onav-inventory" onclick="showOPanel('inventory')"><span class="ic">📦</span>المخزون</button>
+        <button class="sb-item" id="onav-report" onclick="showOPanel('report')"><span class="ic">🧾</span>التقرير</button>
+      </div>
+
+      <div class="o-content">
+        <!-- OVERVIEW -->
+        <div class="o-panel active" id="o-panel-overview">
+          <div class="o-title">نظرة عامة — اليوم</div>
+          <div class="o-sub">السبت، 22 أغسطس · محدّث الآن</div>
+
+          <div class="stat-grid">
+            <div class="stat-box"><div class="lbl">مبيعات اليوم</div><div class="val copper mono">3,240 د.م</div></div>
+            <div class="stat-box"><div class="lbl">عدد الطلبات</div><div class="val mono">86</div></div>
+            <div class="stat-box"><div class="lbl">متوسط الطلب</div><div class="val mono">37.6 د.م</div></div>
+          </div>
+
+          <div class="two-col">
+            <div class="col" style="flex:1.4">
+              <div class="o-sub" style="margin-bottom:8px; font-weight:700; color:var(--text)">المبيعات حسب الساعة</div>
+              <div class="hour-chart" id="hourChart"></div>
+            </div>
+            <div class="col">
+              <div class="o-sub" style="margin-bottom:8px; font-weight:700; color:var(--text)">الأكثر مبيعاً</div>
+              <div style="background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:6px 14px">
+                <div class="top-item-row"><span><span class="rank">1</span>قهوة كابتشينو</span><span class="mono">32</span></div>
+                <div class="top-item-row"><span><span class="rank">2</span>آيس لاتيه</span><span class="mono">24</span></div>
+                <div class="top-item-row"><span><span class="rank">3</span>كرواسون</span><span class="mono">18</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- LIVE ORDERS -->
+        <div class="o-panel" id="o-panel-orders">
+          <div class="o-title">الطلبات الحية</div>
+          <div class="o-sub">اضغط على الطلب لنقله للمرحلة التالية</div>
+          <div class="kanban" id="kanbanBoard"></div>
+        </div>
+
+        <!-- INVENTORY -->
+        <div class="o-panel" id="o-panel-inventory">
+          <div class="o-title">المخزون</div>
+          <div class="o-sub">تنبيهات تلقائية عند اقتراب النفاد</div>
+          <div style="background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:6px 16px">
+            <div class="inv-row">
+              <div class="inv-icon">🥛</div>
+              <div class="inv-wrap">
+                <div class="inv-top"><span>حليب</span><span class="mono">12%</span></div>
+                <div class="inv-track"><div class="inv-fill" style="width:12%; background:var(--alert)"></div></div>
+                <div class="inv-alert">⚠️ ينفد خلال يوم واحد تقريباً — أعد الطلب الآن</div>
+              </div>
+            </div>
+            <div class="inv-row">
+              <div class="inv-icon">☕</div>
+              <div class="inv-wrap">
+                <div class="inv-top"><span>حبوب قهوة</span><span class="mono">54%</span></div>
+                <div class="inv-track"><div class="inv-fill" style="width:54%; background:var(--copper)"></div></div>
+              </div>
+            </div>
+            <div class="inv-row">
+              <div class="inv-icon">🍫</div>
+              <div class="inv-wrap">
+                <div class="inv-top"><span>شوكولاتة</span><span class="mono">78%</span></div>
+                <div class="inv-track"><div class="inv-fill" style="width:78%; background:var(--matcha)"></div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- REPORT -->
+        <div class="o-panel" id="o-panel-report">
+          <div class="o-title">التقرير الشهري</div>
+          <div class="o-sub">أغسطس 2026</div>
+          <div style="background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:6px 16px">
+            <div class="rep-cat"><div class="rep-wrap"><div class="rep-top"><span>مشروبات ساخنة</span><span class="mono">42,100 د.م</span></div><div class="rep-track"><div class="rep-fill" style="width:70%"></div></div></div></div>
+            <div class="rep-cat"><div class="rep-wrap"><div class="rep-top"><span>مشروبات باردة</span><span class="mono">28,600 د.م</span></div><div class="rep-track"><div class="rep-fill" style="width:48%"></div></div></div></div>
+            <div class="rep-cat"><div class="rep-wrap"><div class="rep-top"><span>حلويات ومخبوزات</span><span class="mono">14,300 د.م</span></div><div class="rep-track"><div class="rep-fill" style="width:24%"></div></div></div></div>
+          </div>
+          <div class="export-row">
+            <div>
+              <div style="font-weight:700; font-size:13px">تصدير جاهز للمحاسب</div>
+              <div style="font-size:11px; color:var(--text-muted); margin-top:2px">PDF + Excel منظم حسب الشهر</div>
+            </div>
+            <button onclick="showToast('جارٍ تجهيز الملف...')">تصدير</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  function setMode(m){
+    document.querySelectorAll('.mode-wrap').forEach(w=>w.classList.remove('active'));
+    document.getElementById('mode-'+m).classList.add('active');
+    document.getElementById('sw-customer').classList.toggle('active', m==='customer');
+    document.getElementById('sw-owner').classList.toggle('active', m==='owner');
+  }
+
+  /* ================= CUSTOMER ================= */
+  const menuItems = [
+    {id:1, cat:'hot', icon:'☕', name:'كابتشينو', desc:'إسبريسو مع حليب مبخر ورغوة', price:22},
+    {id:2, cat:'hot', icon:'☕', name:'قهوة أمريكية', desc:'إسبريسو مخفف بالماء الساخن', price:16},
+    {id:3, cat:'cold', icon:'🧊', name:'آيس لاتيه', desc:'إسبريسو، حليب بارد، ثلج', price:26},
+    {id:4, cat:'cold', icon:'🧊', name:'كولد برو', desc:'قهوة منقوعة على البارد 12 ساعة', price:28},
+    {id:5, cat:'sweet', icon:'🥐', name:'كرواسون زبدة', desc:'مخبوز طازج يومياً', price:14},
+    {id:6, cat:'sweet', icon:'🍰', name:'تشيز كيك', desc:'قطعة كلاسيكية', price:24},
+  ];
+  let cart = {};
+  const menuListEl = document.getElementById('menuList');
+
+  function renderMenu(filter){
+    menuListEl.innerHTML = '';
+    menuItems.filter(i => filter==='all' || i.cat===filter).forEach(item=>{
+      const qty = cart[item.id]?.qty || 0;
+      const el = document.createElement('div');
+      el.className = 'menu-item';
+      el.innerHTML = `
+        <div class="thumb">${item.icon}</div>
+        <div class="info">
+          <div class="name">${item.name}</div>
+          <div class="desc">${item.desc}</div>
+          <div class="price mono">${item.price.toFixed(2)} د.م</div>
+        </div>
+        <div class="stepper">
+          <button onclick="changeQty(${item.id},-1)">−</button>
+          <span id="qty-${item.id}">${qty}</span>
+          <button onclick="changeQty(${item.id},1)">+</button>
+        </div>`;
+      menuListEl.appendChild(el);
+    });
+  }
+  function filterCat(el, cat){
+    document.querySelectorAll('.cat-chip').forEach(c=>c.classList.remove('active'));
+    el.classList.add('active');
+    renderMenu(cat);
+  }
+  function changeQty(id, delta){
+    const item = menuItems.find(i=>i.id===id);
+    const current = cart[id]?.qty || 0;
+    const next = Math.max(0, current+delta);
+    if(next===0) delete cart[id];
+    else cart[id] = {item, qty:next};
+    const qtyEl = document.getElementById('qty-'+id);
+    if(qtyEl) qtyEl.textContent = next;
+    updateCartUI();
+  }
+  function cartTotal(){
+    return Object.values(cart).reduce((s,c)=> s + c.item.price*c.qty, 0);
+  }
+  function cartCount(){
+    return Object.values(cart).reduce((s,c)=> s + c.qty, 0);
+  }
+  function updateCartUI(){
+    const count = cartCount();
+    const total = cartTotal();
+    const floatCart = document.getElementById('floatCart');
+    floatCart.classList.toggle('show', count>0);
+    document.getElementById('floatCartText').textContent = count + ' عناصر';
+    document.getElementById('floatCartTotal').textContent = total.toFixed(2) + ' د.م';
+    const badge = document.getElementById('cartBadge');
+    badge.style.display = count>0 ? 'flex' : 'none';
+    badge.textContent = count;
+
+    const linesEl = document.getElementById('cartLines');
+    linesEl.innerHTML = '';
+    Object.values(cart).forEach(c=>{
+      const row = document.createElement('div');
+      row.className = 'cart-line';
+      row.innerHTML = `
+        <div>
+          <div class="nm">${c.item.name}</div>
+          <div class="pr mono">${c.qty} × ${c.item.price.toFixed(2)} د.م</div>
+        </div>
+        <div class="stepper">
+          <button onclick="changeQty(${c.item.id},-1)">−</button>
+          <span>${c.qty}</span>
+          <button onclick="changeQty(${c.item.id},1)">+</button>
+        </div>`;
+      linesEl.appendChild(row);
+    });
+    if(count===0) linesEl.innerHTML = '<div style="text-align:center; color:var(--text-muted); font-size:12.5px; padding:30px 0">سلتك فارغة — أضف شيئاً من القائمة</div>';
+    document.getElementById('subtotalVal').textContent = total.toFixed(2) + ' د.م';
+    document.getElementById('totalVal').textContent = total.toFixed(2) + ' د.م';
+  }
+  function showCPanel(name){
+    document.querySelectorAll('.c-panel').forEach(p=>p.classList.remove('active'));
+    document.querySelectorAll('.c-nav button').forEach(b=>b.classList.remove('active'));
+    document.getElementById('c-panel-'+name).classList.add('active');
+    document.getElementById('cnav-'+name).classList.add('active');
+  }
+  function setPay(type){
+    document.getElementById('payCash').classList.toggle('active', type==='cash');
+    document.getElementById('payCard').classList.toggle('active', type==='card');
+  }
+  function confirmOrder(){
+    if(cartCount()===0) return;
+    const linesEl = document.getElementById('orderSummaryLines');
+    linesEl.innerHTML = Object.values(cart).map(c=>`<div>${c.qty}× ${c.item.name}</div>`).join('');
+    stage = 0;
+    setStage(0);
+    showCPanel('order');
+  }
+
+  let stage = 0;
+  const stages = [
+    {label:'تم استلام طلبك', sub:'سيبدأ الباريستا التحضير قريباً', fill:15},
+    {label:'قيد التحضير', sub:'الباريستا يجهز طلبك الآن ☕', fill:60},
+    {label:'جاهز للاستلام', sub:'تفضل لطاولتك، طلبك في الطريق!', fill:95},
+  ];
+  function setStage(i){
+    const s = stages[i];
+    document.getElementById('stageLabel').textContent = s.label;
+    document.getElementById('stageSub').textContent = s.sub;
+    document.getElementById('liquid').setAttribute('y', 94 - s.fill*0.75);
+    document.getElementById('liquid').setAttribute('height', s.fill*0.75);
+    for(let d=1; d<=3; d++){
+      document.getElementById('dot'+d).classList.toggle('done', d<=i+1);
+    }
+  }
+  function advanceStage(){
+    stage = Math.min(stage+1, 2);
+    setStage(stage);
+  }
+
+  renderMenu('all');
+  updateCartUI();
+
+  /* ================= OWNER ================= */
+  const hours = [
+    {h:'8ص', v:12}, {h:'9ص', v:28}, {h:'10ص', v:22}, {h:'11ص', v:16},
+    {h:'12م', v:24}, {h:'1م', v:31}, {h:'2م', v:18}, {h:'3م', v:14}
+  ];
+  const maxH = Math.max(...hours.map(h=>h.v));
+  const hourChartEl = document.getElementById('hourChart');
+  hours.forEach(h=>{
+    const el = document.createElement('div');
+    el.className = 'hbar';
+    el.innerHTML = `<div class="bar" style="height:${h.v/maxH*90}px"></div><div class="h">${h.h}</div>`;
+    hourChartEl.appendChild(el);
+  });
+
+  function showOPanel(name){
+    document.querySelectorAll('.o-panel').forEach(p=>p.classList.remove('active'));
+    document.querySelectorAll('.sb-item').forEach(b=>b.classList.remove('active'));
+    document.getElementById('o-panel-'+name).classList.add('active');
+    document.getElementById('onav-'+name).classList.add('active');
+  }
+
+  let orders = {
+    new: [
+      {id:101, table:12, items:'كابتشينو ×2، كرواسون ×1', time:'منذ دقيقتين'},
+      {id:102, table:5, items:'آيس لاتيه ×1', time:'منذ دقيقة'},
+    ],
+    preparing: [
+      {id:99, table:3, items:'أمريكية ×1، تشيز كيك ×1', time:'منذ 4 دقائق'},
+    ],
+    ready: [
+      {id:97, table:8, items:'كولد برو ×2', time:'منذ 6 دقائق'},
+    ]
+  };
+  function renderKanban(){
+    const board = document.getElementById('kanbanBoard');
+    board.innerHTML = '';
+    const cols = [
+      {key:'new', title:'جديد', btn:'ابدأ التحضير', next:'preparing'},
+      {key:'preparing', title:'قيد التحضير', btn:'جاهز', next:'ready'},
+      {key:'ready', title:'جاهز للتسليم', btn:'تم التسليم ✓', next:null},
+    ];
+    cols.forEach(col=>{
+      const colEl = document.createElement('div');
+      colEl.className = 'kcol';
+      colEl.innerHTML = `<h4>${col.title}<span class="mono">${orders[col.key].length}</span></h4>`;
+      orders[col.key].forEach(o=>{
+        const card = document.createElement('div');
+        card.className = 'kcard' + (col.key==='ready' ? ' ready' : '');
+        card.innerHTML = `
+          <div class="top"><span>طاولة ${o.table}</span><span class="mono">#${o.id}</span></div>
+          <div class="items">${o.items}</div>
+          <div class="time">${o.time}</div>
+          <button onclick="moveOrder(${o.id}, '${col.key}', ${col.next ? "'"+col.next+"'" : null})">${col.btn}</button>`;
+        colEl.appendChild(card);
+      });
+      board.appendChild(colEl);
+    });
+  }
+  function moveOrder(id, from, to){
+    const idx = orders[from].findIndex(o=>o.id===id);
+    const [order] = orders[from].splice(idx,1);
+    if(to){ order.time = 'الآن'; orders[to].unshift(order); showToast(to==='ready' ? 'الطلب جاهز — أُبلغ الزبون' : 'تم نقل الطلب'); }
+    else { showToast('تم تسليم الطلب ✓'); }
+    renderKanban();
+  }
+  renderKanban();
+
+  function showToast(msg){
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(()=>t.classList.remove('show'), 2200);
+  }
+</script>
+
+</body>
+</html>
