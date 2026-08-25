@@ -16,6 +16,14 @@ const io = new Server(server, {
 app.use(cors());
 app.use(express.json());
 
+app.get('/', (req, res) => {
+  res.json({
+    ok: true,
+    message: 'قهوة خليل API تعمل بنجاح ☕',
+    status: 'online'
+  });
+});
+
 app.get('/api/health', (req, res) => res.json({ ok: true, name: 'قهوة خليل API' }));
 app.use('/api/menu', menuRouter);
 app.use('/api/orders', ordersRouterFactory(io));
